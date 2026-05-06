@@ -17,12 +17,12 @@ PluralEyes costs $200 and falls over on iPhone footage. The Premiere built-in mu
 ## Install
 
 ```bash
-pipx install syncdrop
-# or
-brew install joepascual/tap/syncdrop
+pipx install git+https://github.com/jojopas/syncdrop.git
 ```
 
 Requires `ffmpeg` and `ffprobe` (`brew install ffmpeg`).
+
+PyPI and Homebrew distribution coming once v1 stabilizes.
 
 ## Example
 
