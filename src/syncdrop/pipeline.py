@@ -10,7 +10,7 @@ from pathlib import Path
 from .aaf_builder import ClipPlacement, build_aaf
 from .correlate import correlate_clip, load_envelope
 from .extract import extract_scratch
-from .probe import duration_seconds, ffprobe
+from .probe import duration_seconds, ffprobe, video_frame_rate
 from .scan import scan_folder
 
 
@@ -45,12 +45,13 @@ def run_pipeline(
     output_aaf: Path | None = None,
     reference_video: Path | None = None,
     min_confidence: float = 5.0,
-    edit_rate: tuple[int, int] = (30000, 1001),
+    edit_rate: tuple[int, int] | None = None,
     verbose: bool = True,
-) -> Path:
+    dry_run: bool = False,
+) -> Path | None:
     """Sync all videos in input_folder and write an AAF.
 
-    Returns the path of the written AAF.
+    Returns the path of the written AAF, or None if dry_run was True.
     """
     input_folder = Path(input_folder)
     output_aaf = Path(output_aaf) if output_aaf else input_folder / "synced.aaf"
@@ -93,6 +94,18 @@ def run_pipeline(
 
         if verbose:
             print(f"\nReference: {reference_video.name}")
+
+        auto_detected = edit_rate is None
+        if auto_detected:
+            edit_rate = video_frame_rate(ffprobe(reference_video))
+            if edit_rate is None:
+                raise RuntimeError(
+                    f"Could not detect frame rate from {reference_video.name}; pass --fps explicitly"
+                )
+        if verbose:
+            tag = " (auto-detected from reference)" if auto_detected else ""
+            print(f"Edit rate: {edit_rate[0]}/{edit_rate[1]} "
+                  f"({float(Fraction(*edit_rate)):.3f} fps){tag}")
 
         # Correlate every clip against reference
         rate_frac = Fraction(*edit_rate)
@@ -148,6 +161,11 @@ def run_pipeline(
             total = max(p.offset_frames + p.duration_frames for p in placements)
             print(f"\nTimeline: {total} frames @ {edit_rate[0]}/{edit_rate[1]} = "
                   f"{float(total / rate_frac) / 60:.1f} min")
+
+        if dry_run:
+            if verbose:
+                print("\n--dry-run: skipping AAF write")
+            return None
 
         build_aaf(placements, output_aaf, edit_rate=edit_rate)
 

@@ -44,8 +44,12 @@ def main(argv: list[str] | None = None) -> int:
                    help="Output AAF path (default: <folder>/synced.aaf)")
     p.add_argument("--min-confidence", type=float, default=5.0,
                    help="Drop clips with correlation confidence below this (default 5.0)")
-    p.add_argument("--fps", type=str, default="29.97",
-                   help="Edit rate: 23.976, 24, 25, 29.97, 30, 59.94, 60, or num/den (default 29.97)")
+    p.add_argument("--fps", type=str, default=None,
+                   help="Edit rate: 23.976, 24, 25, 29.97, 30, 59.94, 60, or num/den. "
+                        "Default: auto-detect from reference clip.")
+    p.add_argument("--dry-run", action="store_true",
+                   help="Scan, extract scratch audio, and print the offset table — "
+                        "but skip writing the AAF. Useful for sanity-checking confidence first.")
     p.add_argument("--quiet", action="store_true", help="Suppress progress output")
     p.add_argument("-V", "--version", action="version", version=f"syncdrop {__version__}")
 
@@ -57,8 +61,9 @@ def main(argv: list[str] | None = None) -> int:
             output_aaf=args.out,
             reference_video=args.ref,
             min_confidence=args.min_confidence,
-            edit_rate=parse_edit_rate(args.fps),
+            edit_rate=parse_edit_rate(args.fps) if args.fps else None,
             verbose=not args.quiet,
+            dry_run=args.dry_run,
         )
     except (RuntimeError, NotADirectoryError, ValueError) as e:
         print(f"syncdrop: error: {e}", file=sys.stderr)
