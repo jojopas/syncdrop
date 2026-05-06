@@ -27,3 +27,20 @@ def has_audio(meta: dict) -> bool:
 
 def duration_seconds(meta: dict) -> float:
     return float(meta["format"]["duration"])
+
+
+def video_frame_rate(meta: dict) -> tuple[int, int] | None:
+    """Return the video stream's frame rate as (num, den), or None if no video stream."""
+    for s in meta.get("streams", []):
+        if s.get("codec_type") != "video":
+            continue
+        # ffprobe returns r_frame_rate like "30000/1001" or "25/1"
+        rate = s.get("r_frame_rate") or s.get("avg_frame_rate")
+        if not rate or rate == "0/0":
+            continue
+        num, _, den = rate.partition("/")
+        try:
+            return int(num), int(den) if den else 1
+        except ValueError:
+            continue
+    return None
