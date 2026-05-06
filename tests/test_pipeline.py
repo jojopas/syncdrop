@@ -20,18 +20,8 @@ def make_synthetic_clip(
     sample_rate: int = 16000,
     fps: int = 30,
 ) -> Path:
-    """Create a tiny .mov with deterministic test patterns + an offset audio click track.
-
-    Different audio_phase_offset_s values shift where 'click' impulses land so the
-    correlator can find a non-zero offset between two clips with shared structure.
-
-    Uses a 'sine' source seeded by phase so the audio is deterministic and
-    cross-correlation has a clean alignment signal across both clips.
-    """
+    """Create a tiny .mov with a 440Hz sine audio track delayed by audio_phase_offset_s."""
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    # The audio uses a sum of sines whose phase shifts produce sharp transients.
-    # Two clips with different audio_phase_offset_s share structural energy after
-    # the offset is removed, yielding a strong correlation peak.
     audio_filter = (
         f"sine=frequency=440:sample_rate={sample_rate}:duration={duration_s},"
         f"adelay={int(audio_phase_offset_s*1000)}|{int(audio_phase_offset_s*1000)},"
@@ -52,10 +42,8 @@ def make_synthetic_clip(
 def test_pipeline_end_to_end_synthetic(tmp_path: Path) -> None:
     """Two synthetic clips → run pipeline → AAF round-trips via pyaaf2.
 
-    This proves: scan → extract → correlate → build_aaf glue is wired correctly,
-    even if the synthetic audio's correlation peak isn't at the precise offset
-    we'd want on real footage. We assert the AAF is structurally valid, not
-    that the offsets are pixel-perfect.
+    Asserts the AAF is structurally valid, not that the synthetic audio yields
+    a frame-perfect offset (sine waves give ambiguous correlation peaks).
     """
     folder = tmp_path / "clips"
     folder.mkdir()

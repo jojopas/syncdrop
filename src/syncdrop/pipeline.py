@@ -95,22 +95,17 @@ def run_pipeline(
         if verbose:
             print(f"\nReference: {reference_video.name}")
 
-        # Auto-detect edit rate from reference clip when not explicitly set.
-        # ffprobe returns r_frame_rate like "30000/1001", "25/1", "24000/1001".
-        if edit_rate is None:
-            ref_meta = ffprobe(reference_video)
-            detected = video_frame_rate(ref_meta)
-            if detected is None:
+        auto_detected = edit_rate is None
+        if auto_detected:
+            edit_rate = video_frame_rate(ffprobe(reference_video))
+            if edit_rate is None:
                 raise RuntimeError(
                     f"Could not detect frame rate from {reference_video.name}; pass --fps explicitly"
                 )
-            edit_rate = detected
-            if verbose:
-                print(f"Edit rate: {edit_rate[0]}/{edit_rate[1]} "
-                      f"({float(Fraction(*edit_rate)):.3f} fps, auto-detected from reference)")
-        elif verbose:
+        if verbose:
+            tag = " (auto-detected from reference)" if auto_detected else ""
             print(f"Edit rate: {edit_rate[0]}/{edit_rate[1]} "
-                  f"({float(Fraction(*edit_rate)):.3f} fps)")
+                  f"({float(Fraction(*edit_rate)):.3f} fps){tag}")
 
         # Correlate every clip against reference
         rate_frac = Fraction(*edit_rate)
