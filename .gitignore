@@ -16,3 +16,6 @@ scratch/
 *.aaf
 *.fcpxml
 !tests/fixtures/*.aaf
+
+*.log
+build_log.txt
